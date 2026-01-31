@@ -138,9 +138,7 @@ class GazeTracker:
             # Log error for debugging but continue with last known position
             print(f"Warning: Failed to get gaze position: {e}")
             return (self._last_gaze[0], self._last_gaze[1], self._last_timestamp)
-    
-    _callback_log_count = 0  # Class variable to limit logging
-    
+
     def _on_frame_callback(self, camera_running_state, timestamp, frame: np.ndarray) -> None:
         """
         Callback function called by GazeFollower's camera when a new frame is captured.
@@ -150,11 +148,6 @@ class GazeTracker:
             timestamp: Timestamp of the frame
             frame: The captured frame (BGR format)
         """
-        # #region agent log
-        GazeTracker._callback_log_count += 1
-        if GazeTracker._callback_log_count <= 5:
-            import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H1_H2", "location": "gaze_tracker.py:_on_frame_callback", "message": "callback_invoked", "data": {"frame_is_none": frame is None, "frame_shape": list(frame.shape) if frame is not None else None, "count": GazeTracker._callback_log_count}, "timestamp": int(time.time()*1000)}) + '\n')
-        # #endregion
         with self._frame_lock:
             self._last_frame = frame.copy() if frame is not None else None
     
@@ -183,9 +176,6 @@ class GazeTracker:
             try:
                 add_callback(self._on_frame_callback)
                 self._frame_callback_registered = True
-                # #region agent log
-                import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H1", "location": "gaze_tracker.py:enable_frame_callback", "message": "callback_registered", "data": {"success": True, "mode": "add"}, "timestamp": int(time.time()*1000)}) + '\n')
-                # #endregion
                 return True
             except Exception as e:
                 print(f"Warning: Failed to add frame callback: {e}")
@@ -219,23 +209,6 @@ class GazeTracker:
             original_callback_kwargs = dict(getattr(camera, "callback_kwargs", {}) or {})
             break
 
-        # #region agent log
-        import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({
-            "hypothesisId": "H7",
-            "location": "gaze_tracker.py:enable_frame_callback",
-            "message": "camera_callback_introspection",
-            "data": {
-                "type": type(camera).__name__,
-                "has_add": callable(add_callback),
-                "has_set": callable(set_callback),
-                "callback_attrs": callback_attrs,
-                "selected_attr": next((name for name in callback_attr_candidates if getattr(camera, name, None) is original_callback), None),
-                "original_is_none": original_callback is None
-            },
-            "timestamp": int(time.time()*1000)
-        }) + '\n')
-        # #endregion
-
         def combined_callback(camera_state, timestamp, frame, *args, **kwargs):
             result = None
             if original_callback is not None:
@@ -259,31 +232,20 @@ class GazeTracker:
             self._camera_original_callback = original_callback
             self._camera_callback_wrapper = combined_callback
             self._frame_callback_registered = True
-            # #region agent log
-            import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H1", "location": "gaze_tracker.py:enable_frame_callback", "message": "callback_registered", "data": {"success": True, "mode": "wrap"}, "timestamp": int(time.time()*1000)}) + '\n')
-            # #endregion
             return True
         except Exception as e:
             print(f"Warning: Failed to register frame callback: {e}")
             return False
-    
-    _get_frame_log_count = 0  # Class variable to limit logging
-    
+
     def get_frame(self) -> Optional[np.ndarray]:
         """
         Get the latest camera frame received via callback.
-        
+
         Returns:
             numpy array of the frame (BGR format) or None if unavailable.
         """
         with self._frame_lock:
-            result = self._last_frame.copy() if self._last_frame is not None else None
-            # #region agent log
-            GazeTracker._get_frame_log_count += 1
-            if GazeTracker._get_frame_log_count <= 5:
-                import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H3", "location": "gaze_tracker.py:get_frame", "message": "get_frame_result", "data": {"result_is_none": result is None, "last_frame_is_none": self._last_frame is None, "count": GazeTracker._get_frame_log_count}, "timestamp": int(time.time()*1000)}) + '\n')
-            # #endregion
-            return result
+            return self._last_frame.copy() if self._last_frame is not None else None
     
     def get_gaze_info(self) -> Any:
         """

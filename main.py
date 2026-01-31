@@ -379,13 +379,7 @@ def run_gaze_with_pupil_mode(args):
     
     # Enable frame callback AFTER calibration to not interfere with GazeFollower's preview/calibration
     print("Enabling frame callback for pupil detection...")
-    # #region agent log
-    import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H6", "location": "main.py:after_calibration_enable_callback", "message": "enabling_callback_after_calibration", "timestamp": int(time.time()*1000)}) + '\n')
-    # #endregion
     callback_result = gaze_tracker.enable_frame_callback()
-    # #region agent log
-    import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H6", "location": "main.py:callback_result", "message": "callback_enable_result", "data": {"result": callback_result}, "timestamp": int(time.time()*1000)}) + '\n')
-    # #endregion
     if not callback_result:
         print("Warning: Frame callback not available.")
     
@@ -428,22 +422,11 @@ def run_gaze_with_pupil_mode(args):
     
     # Start sampling
     gaze_tracker.start_sampling()
-    # #region agent log
-    import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H0", "location": "main.py:after_start_sampling", "message": "sampling_started", "timestamp": int(time.time()*1000)}) + '\n')
-    # #endregion
-    
+
     running = True
-    loop_count = 0
-    
+
     try:
         while running:
-            loop_count += 1
-            # Log first few iterations only
-            if loop_count <= 3:
-                # #region agent log
-                import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H0", "location": "main.py:main_loop", "message": "loop_iteration", "data": {"count": loop_count}, "timestamp": int(time.time()*1000)}) + '\n')
-                # #endregion
-            
             # Handle events
             running = renderer.handle_events()
             
@@ -452,18 +435,10 @@ def run_gaze_with_pupil_mode(args):
             
             # Get frame via callback for pupil detection
             frame = gaze_tracker.get_frame()
-            # #region agent log
-            if loop_count <= 5:
-                import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H4_H5", "location": "main.py:run_gaze_with_pupil_mode", "message": "main_loop_frame", "data": {"frame_is_none": frame is None, "loop": loop_count}, "timestamp": int(time.time()*1000)}) + '\n')
-            # #endregion
             if frame is not None:
                 pupil_data = pupil_detector.process_frame(frame, timestamp)
                 pupil_metrics = metrics_calc.update(pupil_data)
                 ear_history = metrics_calc.get_ear_history()
-                # #region agent log
-                if loop_count <= 5:
-                    import json; open(r'c:\Users\daist\gazetrack\.cursor\debug.log', 'a').write(json.dumps({"hypothesisId": "H4_H5", "location": "main.py:run_gaze_with_pupil_mode", "message": "pupil_processed", "data": {"has_metrics": pupil_metrics is not None, "left_diam": pupil_metrics.current_left_diameter_mm if pupil_metrics else None, "is_valid": pupil_metrics.is_valid if pupil_metrics else None, "loop": loop_count}, "timestamp": int(time.time()*1000)}) + '\n')
-                # #endregion
             else:
                 # Fallback: use GazeInfo for basic metrics
                 pupil_metrics = None
